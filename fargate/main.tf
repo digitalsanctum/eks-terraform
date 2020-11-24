@@ -34,9 +34,6 @@ resource "aws_eks_fargate_profile" "main" {
   subnet_ids             = var.private_subnets.*.id
 
   selector {
-    labels = {
-      app = "nginx"
-    }
     namespace = "default"
   }
 
