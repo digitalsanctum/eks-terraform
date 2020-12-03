@@ -42,7 +42,3 @@ resource "aws_eks_fargate_profile" "main" {
     delete = "60m"
   }
 }
-
-output "fargate_profile" {
-  value = aws_eks_fargate_profile.main
-}

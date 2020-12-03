@@ -1,6 +1,6 @@
 variable "name" {
   description = "The name of the stack."
-  default = "pcs-infra"
+  default     = "pcs-infra"
 }
 
 variable "environment" {
@@ -12,7 +12,7 @@ variable "region" {
 }
 
 variable "availability_zones" {
-  default     = ["us-west-2a", "us-west-2b", "us-west-2c"]
+  default = ["us-west-2a", "us-west-2b", "us-west-2c"]
 }
 
 variable "cidr" {
@@ -37,6 +37,6 @@ variable "kubeconfig_path" {
 
 variable "k8s_version" {
   description = "Kubernetes version"
-  default = "1.18"
+  default     = "1.18"
 }
 

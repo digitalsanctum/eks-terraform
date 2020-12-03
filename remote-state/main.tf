@@ -2,8 +2,12 @@ provider "aws" {
   region = "us-west-2"
 }
 
+locals {
+  name = "pcs-infra"
+}
+
 resource "aws_s3_bucket" "terraform_state" {
-  bucket = "pcs-infra-terraform-state"
+  bucket = "${local.name}-terraform-state"
 
   versioning {
     enabled = true
@@ -15,7 +19,7 @@ resource "aws_s3_bucket" "terraform_state" {
 }
 
 resource "aws_dynamodb_table" "terraform_state_lock" {
-  name           = "pcs-infra-terraform-state-lock"
+  name           = "${local.name}-terraform-state-lock"
   read_capacity  = 1
   write_capacity = 1
   hash_key       = "LockID"

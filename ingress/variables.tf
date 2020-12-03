@@ -11,7 +11,7 @@ variable "region" {
 }
 
 variable "vpc_id" {
-  description = "The VPC the cluser should be created in"
+  description = "The VPC the cluster should be created in"
 }
 
 variable "cluster_id" {
@@ -23,5 +23,6 @@ variable "cluster_name" {
 }
 
 variable "alb_ingress_controller_version" {
-  default = "v1.1.5"
+//  default = "v1.1.5"
+  default = "v1.1.9"
 }
