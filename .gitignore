@@ -1,4 +1,5 @@
-.terraform
 .idea
-*.tfstate
+.kube
+.terraform
 *.log
+*.tfstate

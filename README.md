@@ -8,6 +8,16 @@ What's included:
 * An EKS Cluster with mixed Fargate and EC2 workgroups
 * Includes nginx deploy for infrastructure verification purposes only
 
+## Usage
+
+To establish remote state using S3 and locking via a DynamoDB table, run the following:
+```shell
+cd remote-state
+tf init
+tf plan
+tf apply -auto-approve 
+```
+
 ## References
 
 * [Set up the ALB Ingress Controller on an Amazon EKS cluster for Fargate](https://aws.amazon.com/premiumsupport/knowledge-center/eks-alb-ingress-controller-fargate/)
