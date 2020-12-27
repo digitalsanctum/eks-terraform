@@ -1,5 +1,7 @@
-variable "name" {
-  description = "The name of the stack."
+variable "region" {}
+
+variable "namespace" {
+  description = "The namespace of the stack."
 }
 
 variable "environment" {

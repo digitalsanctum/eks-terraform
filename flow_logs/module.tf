@@ -1,3 +1,15 @@
+terraform {
+  required_version = "~>0.14"
+  backend "s3" {
+    bucket  = "${var.namespace}-tf-state-${var.region}"
+    key     = "${var.environment}/terraform.tfstate"
+    encrypt = true
+  }
+}
+
+provider "aws" {
+  region = var.region
+}
 
 resource "aws_flow_log" "main" {
   iam_role_arn = aws_iam_role.vpc-flow-logs-role.arn
@@ -7,19 +19,19 @@ resource "aws_flow_log" "main" {
 }
 
 resource "aws_cloudwatch_log_group" "vpc" {
-  name = "/aws/vpc/${var.name}-${var.environment}/flow"
-  retention_in_days = 30
+  name = "/aws/vpc/${var.namespace}-${var.environment}-${var.region}/flow"
+  retention_in_days = 7
 
   tags = {
-    name = "${var.name}-${var.environment}-vpc-cloudwatch-log-group"
+    name = "${var.namespace}-${var.environment}-${var.region}-vpc-cloudwatch-log-group"
     environment = var.environment
   }
 }
 
 resource "aws_iam_role" "vpc-flow-logs-role" {
-  name = "${var.name}-${var.environment}-vpc-flow-logs-role"
+  name = "${var.namespace}-${var.environment}-${var.region}-vpc-flow-logs-role"
 
-  assume_role_policy = <<EOF
+  assume_role_policy = <<POLICY
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -33,14 +45,14 @@ resource "aws_iam_role" "vpc-flow-logs-role" {
     }
   ]
 }
-EOF
+POLICY
 }
 
 resource "aws_iam_role_policy" "vpc-flow-logs-policy" {
-  name = "${var.name}-${var.environment}-vpc-flow-logs-policy"
+  name = "${var.namespace}-${var.environment}-${var.region}-vpc-flow-logs-policy"
   role = aws_iam_role.vpc-flow-logs-role.id
 
-  policy = <<EOF
+  policy = <<POLICY
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -57,5 +69,5 @@ resource "aws_iam_role_policy" "vpc-flow-logs-policy" {
     }
   ]
 }
-EOF
+POLICY
 }
