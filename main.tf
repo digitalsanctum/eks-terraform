@@ -36,31 +36,46 @@ module "aws-flow-logs-us-west-2" {
   vpc_id      = module.aws-vpc-us-west-2.id
 }
 
-//module "eks" {
-//  source          = "./eks"
-//  name            = var.namespace
-//  environment     = var.environment
-//  region          = var.region
-//  k8s_version     = var.k8s_version
-//  vpc_id          = module.vpc.id
-//  private_subnets = module.vpc.private_subnets
-//  public_subnets  = module.vpc.public_subnets
-//  kubeconfig_path = var.kubeconfig_path
-//}
-//
-//module "fargate" {
-//  source           = "./fargate"
-//  name             = var.namespace
-//  environment      = var.environment
-//  region           = var.region
-//  k8s_version      = var.k8s_version
-//  vpc_id           = module.vpc.id
-//  private_subnets  = module.vpc.private_subnets
-//  public_subnets   = module.vpc.public_subnets
-//  kubeconfig_path  = var.kubeconfig_path
-//  eks_cluster_name = module.eks.cluster_id
-//  depends_on = [
-//    module.eks,
-//    module.vpc
-//  ]
-//}
+module "aws-eks-us-east-1" {
+  source          = "./eks"
+  namespace       = var.namespace
+  environment     = var.environment
+  region          = "us-east-1"
+  k8s_version     = var.k8s_version
+  vpc_id          = module.aws-vpc-us-east-1.id
+  private_subnets = module.aws-vpc-us-east-1.private_subnets
+  public_subnets  = module.aws-vpc-us-east-1.public_subnets
+  kubeconfig_path = var.kubeconfig_path
+}
+
+module "aws-eks-us-west-2" {
+  source          = "./eks"
+  namespace       = var.namespace
+  environment     = var.environment
+  region          = "us-west-2"
+  k8s_version     = var.k8s_version
+  vpc_id          = module.aws-vpc-us-west-2.id
+  private_subnets = module.aws-vpc-us-west-2.private_subnets
+  public_subnets  = module.aws-vpc-us-west-2.public_subnets
+  kubeconfig_path = var.kubeconfig_path
+}
+
+module "aws-eks-fargate-us-east-1" {
+  source               = "./fargate"
+  namespace            = var.namespace
+  environment          = var.environment
+  region               = "us-east-1"
+  private_subnets      = module.aws-vpc-us-east-1.private_subnets
+  eks_cluster_name     = module.aws-eks-us-east-1.cluster_id
+  eks_cluster_endpoint = module.aws-eks-us-east-1.cluster_endpoint
+}
+
+module "aws-eks-fargate-us-west-2" {
+  source               = "./fargate"
+  namespace            = var.namespace
+  environment          = var.environment
+  region               = "us-west-2"
+  private_subnets      = module.aws-vpc-us-west-2.private_subnets
+  eks_cluster_name     = module.aws-eks-us-west-2.cluster_id
+  eks_cluster_endpoint = module.aws-eks-us-west-2.cluster_endpoint
+}

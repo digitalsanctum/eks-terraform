@@ -1,6 +1,6 @@
 output "kubectl_config" {
   description = "Path to new kubectl config file"
-  value = pathexpand("${var.kubeconfig_path}/config")
+  value = pathexpand("${var.kubeconfig_path}/${var.region}/config")
 }
 
 output "cluster_id" {
@@ -8,7 +8,7 @@ output "cluster_id" {
   value = module.main.cluster_id
 }
 
-output "cluster_name" {
-  description = "Name of the created cluster"
-  value = local.cluster_name
+output "cluster_endpoint" {
+  description = "Endpoint of the created cluster"
+  value = module.main.cluster_endpoint
 }
