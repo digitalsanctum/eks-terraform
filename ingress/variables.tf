@@ -1,4 +1,4 @@
-variable "name" {
+variable "namespace" {
   description = "The name of the stack."
 }
 
@@ -16,10 +16,6 @@ variable "vpc_id" {
 
 variable "cluster_id" {
   description = "The ID of the cluster where the ingress controller should be attached"
-}
-
-variable "cluster_name" {
-  description = "The Name of the cluster where the ingress controller should be attached"
 }
 
 variable "alb_ingress_controller_version" {

@@ -1,17 +1,3 @@
-/* IMPORTANT: https://docs.aws.amazon.com/eks/latest/userguide/network_reqs.html */
-
-terraform {
-  required_version = "~>0.14"
-  backend "s3" {
-    bucket  = "${var.namespace}-tf-state-${var.region}"
-    key     = "${var.environment}/terraform.tfstate"
-    encrypt = true
-  }
-}
-
-provider "aws" {
-  region = var.region
-}
 
 resource "aws_vpc" "main" {
   cidr_block = var.cidr
@@ -19,9 +5,9 @@ resource "aws_vpc" "main" {
   enable_dns_hostnames = true
 
   tags = {
-    Name = "${var.namespace}-${var.environment}-${var.region}-vpc"
+    Name = var.namespace
     Environment = var.environment
-    "kubernetes.io/cluster/${var.namespace}-${var.environment}" = "shared"
+    "kubernetes.io/cluster/${var.namespace}" = "shared"
   }
 }
 
@@ -29,30 +15,30 @@ resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
 
   tags = {
-    Name = "${var.namespace}-${var.environment}-igw"
+    Name = var.namespace
     Environment = var.environment
   }
 }
 
 resource "aws_nat_gateway" "main" {
   count = length(var.public_subnets)
-  allocation_id = element(aws_eip.nat.*.id, count.index)
+  allocation_id = element(aws_eip.eip.*.id, count.index)
   subnet_id = element(aws_subnet.public.*.id, count.index)
   depends_on = [
     aws_internet_gateway.main]
 
   tags = {
-    Name = "${var.namespace}-${var.environment}-nat-${format("%03d", count.index+1)}"
+    Name = "${var.namespace}-${format("%03d", count.index+1)}"
     Environment = var.environment
   }
 }
 
-resource "aws_eip" "nat" {
+resource "aws_eip" "eip" {
   count = length(var.private_subnets)
   vpc = true
 
   tags = {
-    Name = "${var.namespace}-${var.environment}-eip-${format("%03d", count.index+1)}"
+    Name = "${var.namespace}-${format("%03d", count.index+1)}"
     Environment = var.environment
   }
 }
@@ -64,9 +50,9 @@ resource "aws_subnet" "private" {
   count = length(var.private_subnets)
 
   tags = {
-    Name = "${var.namespace}-${var.environment}-private-subnet-${format("%03d", count.index+1)}",
+    Name = "${var.namespace}-private-${format("%03d", count.index+1)}",
     Environment = var.environment,
-    "kubernetes.io/cluster/${var.namespace}-${var.environment}" = "shared"
+    "kubernetes.io/cluster/${var.namespace}" = "shared"
     "kubernetes.io/role/internal-elb" = "1"
   }
 }
@@ -79,9 +65,9 @@ resource "aws_subnet" "public" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "${var.namespace}-${var.environment}-public-subnet-${format("%03d", count.index+1)}",
+    Name = "${var.namespace}-public-${format("%03d", count.index+1)}",
     Environment = var.environment,
-    "kubernetes.io/cluster/${var.namespace}-${var.environment}" = "shared",
+    "kubernetes.io/cluster/${var.namespace}" = "shared",
     "kubernetes.io/role/elb" = "1"
   }
 }
@@ -90,7 +76,7 @@ resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
 
   tags = {
-    Name = "${var.namespace}-${var.environment}-routing-table-public"
+    Name = "${var.namespace}-public"
     Environment = var.environment
   }
 }
@@ -106,7 +92,7 @@ resource "aws_route_table" "private" {
   vpc_id = aws_vpc.main.id
 
   tags = {
-    Name = "${var.namespace}-${var.environment}-routing-table-private-${format("%03d", count.index+1)}"
+    Name = "${var.namespace}-private-${format("%03d", count.index+1)}"
     Environment = var.environment
   }
 }

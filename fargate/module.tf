@@ -1,23 +1,11 @@
-terraform {
-  required_version = "~>0.14"
-  backend "s3" {
-    bucket  = "${var.namespace}-tf-state-${var.region}"
-    key     = "${var.environment}/terraform.tfstate"
-    encrypt = true
-  }
-}
-
-provider "aws" {
-  region = var.region
-}
 
 resource "aws_iam_role_policy_attachment" "AmazonEKSFargatePodExecutionRolePolicy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSFargatePodExecutionRolePolicy"
-  role       = aws_iam_role.fargate_pod_execution_role.name
+  role       = aws_iam_role.fargate_pod_execution.name
 }
 
-resource "aws_iam_role" "fargate_pod_execution_role" {
-  name                  = "${var.namespace}-eks-fargate-pod-execution-role"
+resource "aws_iam_role" "fargate_pod_execution" {
+  name                  = "${var.namespace}-eks-fargate-pod-execution"
   force_detach_policies = true
 
   assume_role_policy = <<POLICY
@@ -39,10 +27,10 @@ resource "aws_iam_role" "fargate_pod_execution_role" {
 POLICY
 }
 
-resource "aws_eks_fargate_profile" "main" {
+resource "aws_eks_fargate_profile" "default" {
   cluster_name           = var.eks_cluster_name
   fargate_profile_name   = var.fargate_profile_name
-  pod_execution_role_arn = aws_iam_role.fargate_pod_execution_role.arn
+  pod_execution_role_arn = aws_iam_role.fargate_pod_execution.arn
   subnet_ids             = var.private_subnets.*.id
 
   selector {
@@ -58,7 +46,7 @@ resource "aws_eks_fargate_profile" "main" {
 resource "aws_eks_fargate_profile" "coredns" {
   cluster_name           = var.eks_cluster_name
   fargate_profile_name   = "coredns"
-  pod_execution_role_arn = aws_iam_role.fargate_pod_execution_role.arn
+  pod_execution_role_arn = aws_iam_role.fargate_pod_execution.arn
   subnet_ids             = var.private_subnets.*.id
   selector {
     namespace = "kube-system"
@@ -91,7 +79,6 @@ resource "null_resource" "k8s_patcher" {
 cat >/tmp/ca.crt <<EOF
 ${base64decode(data.aws_eks_cluster.cluster.certificate_authority[0].data)}
 EOF
-apk --no-cache add curl && \
 curl -o aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/1.18.9/2020-11-02/bin/linux/amd64/aws-iam-authenticator && chmod +x ./aws-iam-authenticator && \
 curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl && chmod +x ./kubectl && \
 mkdir -p $HOME/bin && mv ./aws-iam-authenticator $HOME/bin/ && export PATH=$PATH:$HOME/bin && \

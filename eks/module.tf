@@ -1,10 +1,5 @@
-terraform {
-  required_version = "~>0.14"
-  backend "s3" {
-    bucket  = "${var.namespace}-tf-state-${var.region}"
-    key     = "${var.environment}/terraform.tfstate"
-    encrypt = true
-  }
+provider "aws" {
+  region = var.region
 }
 
 provider "kubernetes" {
@@ -12,10 +7,6 @@ provider "kubernetes" {
   cluster_ca_certificate = base64decode(data.aws_eks_cluster.cluster.certificate_authority[0].data)
   token = data.aws_eks_cluster_auth.cluster.token
   load_config_file = false
-}
-
-provider "aws" {
-  region = var.region
 }
 
 data "aws_eks_cluster" "cluster" {
@@ -26,12 +17,8 @@ data "aws_eks_cluster_auth" "cluster" {
   name = module.main.cluster_id
 }
 
-locals {
-  cluster_name = "${var.namespace}-${var.environment}"
-}
-
-resource "aws_iam_policy" "AmazonEKSClusterCloudWatchMetricsPolicy" {
-  name = "AmazonEKSClusterCloudWatchMetricsPolicy"
+resource "aws_iam_policy" "eks_cloudwatch_metrics" {
+  name = "${var.namespace}-eks-cloudwatch-metrics"
   policy = <<EOF
 {
     "Version": "2012-10-17",
@@ -48,8 +35,8 @@ resource "aws_iam_policy" "AmazonEKSClusterCloudWatchMetricsPolicy" {
 EOF
 }
 
-resource "aws_iam_policy" "AmazonEKSClusterNLBPolicy" {
-  name = "AmazonEKSClusterNLBPolicy"
+resource "aws_iam_policy" "eks_elb" {
+  name = "${var.namespace}-eks-elb"
   policy = <<EOF
 {
     "Version": "2012-10-17",
@@ -68,8 +55,8 @@ resource "aws_iam_policy" "AmazonEKSClusterNLBPolicy" {
 EOF
 }
 
-resource "aws_iam_role" "eks_cluster_role" {
-  name = "${var.namespace}-eks-cluster-role"
+resource "aws_iam_role" "eks_cluster" {
+  name = "${var.namespace}-eks-cluster"
   force_detach_policies = true
 
   assume_role_policy = <<POLICY
@@ -93,30 +80,30 @@ POLICY
 
 resource "aws_iam_role_policy_attachment" "AmazonEKSClusterPolicy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
-  role = aws_iam_role.eks_cluster_role.name
+  role = aws_iam_role.eks_cluster.name
 }
 
 resource "aws_iam_role_policy_attachment" "AmazonEKSServicePolicy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSServicePolicy"
-  role = aws_iam_role.eks_cluster_role.name
+  role = aws_iam_role.eks_cluster.name
 }
 
 resource "aws_iam_role_policy_attachment" "AmazonEKSCloudWatchMetricsPolicy" {
-  policy_arn = aws_iam_policy.AmazonEKSClusterCloudWatchMetricsPolicy.arn
-  role = aws_iam_role.eks_cluster_role.name
+  policy_arn = aws_iam_policy.eks_cloudwatch_metrics.arn
+  role = aws_iam_role.eks_cluster.name
 }
 
 resource "aws_iam_role_policy_attachment" "AmazonEKSClusterNLBPolicy" {
-  policy_arn = aws_iam_policy.AmazonEKSClusterNLBPolicy.arn
-  role = aws_iam_role.eks_cluster_role.name
+  policy_arn = aws_iam_policy.eks_elb.arn
+  role = aws_iam_role.eks_cluster.name
 }
 
 resource "aws_cloudwatch_log_group" "eks_cluster" {
-  name = "/aws/eks/${var.namespace}-${var.environment}/${var.region}/cluster"
+  name = "/aws/eks/${var.namespace}/${var.region}/cluster"
   retention_in_days = 30
 
   tags = {
-    Name = "${var.namespace}-${var.environment}-eks-cloudwatch-log-group"
+    Name = "${var.namespace}-eks-cluster"
     Environment = var.environment
   }
 }
@@ -124,17 +111,16 @@ resource "aws_cloudwatch_log_group" "eks_cluster" {
 module "main" {
   source = "terraform-aws-modules/eks/aws"
   version = "13.2.1"
-  cluster_name = local.cluster_name
+  cluster_name = var.namespace
   cluster_version = var.k8s_version
   cluster_create_security_group = true
   subnets = concat(var.public_subnets.*.id, var.private_subnets.*.id)
   vpc_id = var.vpc_id
-  manage_aws_auth = true
+  manage_aws_auth = false
 
-
-//  map_roles    = var.map_roles
-//  map_users    = var.map_users
-//  map_accounts = var.map_accounts
+  map_roles    = var.map_roles
+  map_users    = var.map_users
+  map_accounts = var.map_accounts
 }
 
 # Fetch OIDC provider thumbprint for root CA
@@ -153,8 +139,8 @@ resource "aws_iam_openid_connect_provider" "main" {
   }
 }
 
-resource "aws_iam_role" "eks_node_group_role" {
-  name = "${var.namespace}-eks-node-group-role"
+resource "aws_iam_role" "eks_node_group" {
+  name = "${var.namespace}-eks-node-group"
   force_detach_policies = true
 
   assume_role_policy = <<POLICY
@@ -177,23 +163,23 @@ POLICY
 
 resource "aws_iam_role_policy_attachment" "AmazonEKSWorkerNodePolicy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-  role = aws_iam_role.eks_node_group_role.name
+  role = aws_iam_role.eks_node_group.name
 }
 
 resource "aws_iam_role_policy_attachment" "AmazonEKS_CNI_Policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-  role = aws_iam_role.eks_node_group_role.name
+  role = aws_iam_role.eks_node_group.name
 }
 
 resource "aws_iam_role_policy_attachment" "AmazonEC2ContainerRegistryReadOnly" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-  role = aws_iam_role.eks_node_group_role.name
+  role = aws_iam_role.eks_node_group.name
 }
 
-resource "aws_eks_node_group" "main" {
+resource "aws_eks_node_group" "kube-system" {
   cluster_name = module.main.cluster_id
   node_group_name = "kube-system"
-  node_role_arn = aws_iam_role.eks_node_group_role.arn
+  node_role_arn = aws_iam_role.eks_node_group.arn
   subnet_ids = var.private_subnets.*.id
 
   scaling_config {
@@ -209,7 +195,7 @@ resource "aws_eks_node_group" "main" {
   version = var.k8s_version
 
   tags = {
-    "Name" = "${var.namespace}-${var.environment}-eks-node-group"
+    "Name" = var.namespace
     "Environment" = var.environment
   }
 
@@ -226,8 +212,8 @@ data "template_file" "kubeconfig" {
   template = file("${path.module}/templates/kubeconfig.tpl")
 
   vars = {
-    kubeconfig_name = "eks_${local.cluster_name}"
-    clustername = local.cluster_name
+    kubeconfig_name = "eks_${var.namespace}"
+    clustername = var.namespace
     endpoint = data.aws_eks_cluster.cluster.endpoint
     cluster_auth_base64 = data.aws_eks_cluster.cluster.certificate_authority[0].data
   }

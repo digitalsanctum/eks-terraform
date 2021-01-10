@@ -10,12 +10,19 @@ What's included:
 
 ## Usage
 
-To establish remote state using S3 and locking via a DynamoDB table, run the following:
+To establish remote state using S3 and locking via a DynamoDB table (one-time setup), run the following:
 ```shell
 cd remote-state
 tf init
 tf plan
 tf apply -auto-approve 
+```
+
+From project root:
+```shell
+tf init
+tf plan
+tf apply -auto-approve
 ```
 
 ## References

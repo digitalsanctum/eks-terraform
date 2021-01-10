@@ -1,4 +1,10 @@
 
+provider "kubernetes" {
+  host = data.aws_eks_cluster.cluster.endpoint
+  cluster_ca_certificate = base64decode(data.aws_eks_cluster.cluster.certificate_authority[0].data)
+  token = data.aws_eks_cluster_auth.cluster.token
+  load_config_file = false
+}
 
 data "aws_eks_cluster" "cluster" {
   name = var.cluster_id
@@ -10,13 +16,13 @@ data "aws_eks_cluster_auth" "cluster" {
 
 data "aws_caller_identity" "current" {}
 
-resource "aws_iam_policy" "ALBIngressControllerIAMPolicy" {
-  name   = "ALBIngressControllerIAMPolicy"
+resource "aws_iam_policy" "alb_ingress_iam_policy" {
+  name   = "${var.namespace}-alb-ingress-policy"
   policy = file("${path.module}/alb-ingress-controller-iam-policy-${var.alb_ingress_controller_version}.json")
 }
 
-resource "aws_iam_role" "eks_alb_ingress_controller" {
-  name        = "eks-alb-ingress-controller"
+resource "aws_iam_role" "alb_ingress_iam_role" {
+  name        = "${var.namespace}-alb-ingress-role"
   description = "Permissions required by the Kubernetes AWS ALB Ingress controller to do it's job."
 
   force_detach_policies = true
@@ -42,9 +48,9 @@ resource "aws_iam_role" "eks_alb_ingress_controller" {
 ROLE
 }
 
-resource "aws_iam_role_policy_attachment" "ALBIngressControllerIAMPolicy" {
-  policy_arn = aws_iam_policy.ALBIngressControllerIAMPolicy.arn
-  role       = aws_iam_role.eks_alb_ingress_controller.name
+resource "aws_iam_role_policy_attachment" "alb_ingress_iam_policy_attachment" {
+  policy_arn = aws_iam_policy.alb_ingress_iam_policy.arn
+  role       = aws_iam_role.alb_ingress_iam_role.name
 }
 
 resource "kubernetes_cluster_role" "ingress" {
@@ -69,7 +75,7 @@ resource "kubernetes_cluster_role" "ingress" {
   }
 }
 
-resource "kubernetes_cluster_role_binding" "ingress" {
+resource "kubernetes_cluster_role_binding" "alb_ingress_role_binding" {
   metadata {
     name = "alb-ingress-controller"
     labels = {
@@ -84,14 +90,14 @@ resource "kubernetes_cluster_role_binding" "ingress" {
   }
   subject {
     kind      = "ServiceAccount"
-    name      = kubernetes_service_account.ingress.metadata[0].name
-    namespace = kubernetes_service_account.ingress.metadata[0].namespace
+    name      = kubernetes_service_account.alb_ingress_service_account.metadata[0].name
+    namespace = kubernetes_service_account.alb_ingress_service_account.metadata[0].namespace
   }
 
   depends_on = [kubernetes_cluster_role.ingress]
 }
 
-resource "kubernetes_service_account" "ingress" {
+resource "kubernetes_service_account" "alb_ingress_service_account" {
   automount_service_account_token = true
   metadata {
     name      = "alb-ingress-controller"
@@ -101,7 +107,7 @@ resource "kubernetes_service_account" "ingress" {
       "app.kubernetes.io/managed-by" = "terraform"
     }
     annotations = {
-      "eks.amazonaws.com/role-arn" = aws_iam_role.eks_alb_ingress_controller.arn
+      "eks.amazonaws.com/role-arn" = aws_iam_role.alb_ingress_iam_role.arn
     }
   }
 }
@@ -137,7 +143,7 @@ resource "kubernetes_deployment" "ingress" {
       spec {
         dns_policy                       = "ClusterFirst"
         restart_policy                   = "Always"
-        service_account_name             = kubernetes_service_account.ingress.metadata[0].name
+        service_account_name             = kubernetes_service_account.alb_ingress_service_account.metadata[0].name
         termination_grace_period_seconds = 60
 
         container {
@@ -155,7 +161,7 @@ resource "kubernetes_deployment" "ingress" {
 
           volume_mount {
             mount_path = "/var/run/secrets/kubernetes.io/serviceaccount"
-            name       = kubernetes_service_account.ingress.default_secret_name
+            name       = kubernetes_service_account.alb_ingress_service_account.default_secret_name
             read_only  = true
           }
 
@@ -190,15 +196,15 @@ resource "kubernetes_deployment" "ingress" {
         }
 
         volume {
-          name = kubernetes_service_account.ingress.default_secret_name
+          name = kubernetes_service_account.alb_ingress_service_account.default_secret_name
 
           secret {
-            secret_name = kubernetes_service_account.ingress.default_secret_name
+            secret_name = kubernetes_service_account.alb_ingress_service_account.default_secret_name
           }
         }
       }
     }
   }
 
-  depends_on = [kubernetes_cluster_role_binding.ingress]
+//  depends_on = [kubernetes_cluster_role_binding.alb_ingress_role_binding]
 }

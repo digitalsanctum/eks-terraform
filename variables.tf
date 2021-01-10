@@ -1,13 +1,19 @@
 variable "namespace" {
   description = "The name of the stack."
   type        = string
-  default     = "digitalsanctum-eks-demo"
+  default     = "digitalsanctum-eks"
 }
 
 variable "environment" {
   description = "The name of your environment."
   type        = string
   default     = "test"
+}
+
+variable "region" {
+  description = "AWS region."
+  type        = string
+  default     = "us-west-2"
 }
 
 variable "cidr" {

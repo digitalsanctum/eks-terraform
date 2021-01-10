@@ -21,5 +21,5 @@ variable "eks_cluster_name" {
 }
 
 variable "fargate_profile_name" {
-  default = "fargate-default"
+  default = "default"
 }
