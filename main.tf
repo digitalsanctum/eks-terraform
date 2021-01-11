@@ -54,12 +54,12 @@ module "aws-eks-fargate" {
   eks_cluster_name     = module.aws-eks.cluster_id
   eks_cluster_endpoint = module.aws-eks.cluster_endpoint
 }
-//
-//module "aws-alb-ingress-controller-us-west-2" {
-//  source      = "./ingress"
-//  namespace   = var.namespace
-//  environment = var.environment
-//  region      = "us-west-2"
-//  cluster_id  = module.aws-eks-us-west-2.cluster_id
-//  vpc_id      = module.aws-vpc-us-west-2.id
-//}
+
+module "aws-alb-ingress-controller" {
+  source      = "./ingress"
+  namespace   = var.namespace
+  environment = var.environment
+  region      = var.region
+  cluster_id  = module.aws-eks.cluster_id
+  vpc_id      = module.aws-vpc.id
+}

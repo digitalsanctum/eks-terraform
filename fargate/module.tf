@@ -69,7 +69,7 @@ data "aws_eks_cluster_auth" "cluster" {
 resource "null_resource" "k8s_patcher" {
   depends_on = [ aws_eks_fargate_profile.coredns ]
   triggers = {
-    // fire any time the cluster is update in a way that changes its endpoint or auth
+    // fire any time the cluster is updated in a way that changes its endpoint or auth
     endpoint = var.eks_cluster_endpoint
     ca_crt   = base64decode(data.aws_eks_cluster.cluster.certificate_authority[0].data)
     token    = data.aws_eks_cluster_auth.cluster.token
@@ -79,16 +79,14 @@ resource "null_resource" "k8s_patcher" {
 cat >/tmp/ca.crt <<EOF
 ${base64decode(data.aws_eks_cluster.cluster.certificate_authority[0].data)}
 EOF
-curl -o aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/1.18.9/2020-11-02/bin/linux/amd64/aws-iam-authenticator && chmod +x ./aws-iam-authenticator && \
-curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl && chmod +x ./kubectl && \
+curl -so aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/1.18.9/2020-11-02/bin/linux/amd64/aws-iam-authenticator && chmod +x ./aws-iam-authenticator && \
+curl -sLO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl && chmod +x ./kubectl && \
 mkdir -p $HOME/bin && mv ./aws-iam-authenticator $HOME/bin/ && export PATH=$PATH:$HOME/bin && \
 ./kubectl \
   --server="${var.eks_cluster_endpoint}" \
   --certificate_authority=/tmp/ca.crt \
   --token="${data.aws_eks_cluster_auth.cluster.token}" \
-  patch deployment coredns \
-  -n kube-system --type json \
-  -p='[{"op": "remove", "path": "/spec/template/metadata/annotations/eks.amazonaws.com~1compute-type"}]'
+  annotate deployment coredns -n kube-system eks.amazonaws.com/compute-
 EOH
   }
 }

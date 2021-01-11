@@ -1,6 +1,6 @@
 # eks-terraform
 
-This repository is home to the foundational, setup once infrastructure for an AWS EKS cluster.
+This repository is an example of deploying a Kubernetes cluster on AWS (AWS EKS) using Terraform. 
 
 What's included:
 
@@ -18,11 +18,21 @@ tf plan
 tf apply -auto-approve 
 ```
 
-From project root:
+To deploy a VPC, EKS Cluster with Fargate profile and ALB Ingress Controller, run the following from the project root:
 ```shell
 tf init
 tf plan
 tf apply -auto-approve
+```
+
+## Installing the Kubernetes Dashbaord
+
+Follow the instructions here: https://docs.aws.amazon.com/eks/latest/userguide/dashboard-tutorial.html
+
+## Deploy a Test App (nginx)
+
+```shell
+kubectl apply -f nginx.yaml
 ```
 
 ## References
