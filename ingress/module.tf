@@ -1,13 +1,3 @@
-provider "aws" {
-  region = var.region
-}
-
-provider "kubernetes" {
-  host = data.aws_eks_cluster.cluster.endpoint
-  cluster_ca_certificate = base64decode(data.aws_eks_cluster.cluster.certificate_authority[0].data)
-  token = data.aws_eks_cluster_auth.cluster.token
-  load_config_file = false
-}
 
 data "aws_eks_cluster" "cluster" {
   name = var.cluster_id
@@ -115,7 +105,7 @@ resource "kubernetes_service_account" "alb_ingress" {
   }
 }
 
-resource "kubernetes_deployment" "ingress" {
+resource "kubernetes_deployment" "alb_ingress" {
   metadata {
     name      = "alb-ingress-controller"
     namespace = "kube-system"

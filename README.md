@@ -35,6 +35,13 @@ Follow the instructions here: https://docs.aws.amazon.com/eks/latest/userguide/d
 kubectl apply -f nginx.yaml
 ```
 
+## Destroy
+
+```shell
+terraform state rm module.aws-alb-ingress-controller.kubernetes_deployment.alb_ingress
+terraform destroy -auto-approve
+```
+
 ## References
 
 * [Set up the ALB Ingress Controller on an Amazon EKS cluster for Fargate](https://aws.amazon.com/premiumsupport/knowledge-center/eks-alb-ingress-controller-fargate/)
